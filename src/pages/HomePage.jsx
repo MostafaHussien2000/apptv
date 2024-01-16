@@ -2,10 +2,6 @@
 =========================================*/
 import { useState, useEffect } from "react";
 
-/* Images
-=========================================*/
-import banner from "../assets/banner.png";
-
 /* React Components
 =========================================*/
 import NavBar from "../components/NavBar";
@@ -21,11 +17,16 @@ import { IoIosArrowRoundForward } from "react-icons/io";
 
 /* API URLs
 =========================================*/
-import { featuredMoviesURL, upcomingMoviesURL } from "../api/api";
+import {
+  featuredMoviesURL,
+  nowplayingMoviesURL,
+  upcomingMoviesURL,
+} from "../api/api";
 
 /* Axios
 =========================================*/
 import axios from "axios";
+import Footer from "../components/Footer";
 
 function HomePage() {
   const [activeBackDrop, setActiveBackDrop] = useState("");
@@ -38,6 +39,12 @@ function HomePage() {
   const [upcomingMovies, setUpcomingMovies] = useState([]);
   const [loadingUpcomingMovies, setLoadingUpcomingMovies] = useState(true);
   const [errorUpcomingMovies, setErrorUpcomingMovies] = useState(null);
+  // Currnetly Playing Movies
+  const [currentlyPlayingMovies, setCurrentlyPlayingMovies] = useState([]);
+  const [loadingCurrentlyPlayingMovies, setLoadingCurrentlyPlayingMovies] =
+    useState(true);
+  const [errorCurrentlyPlayingMovies, setErrorCurrentlyPlayingMovies] =
+    useState(null);
 
   useEffect(() => {
     // Get featured movies
@@ -60,11 +67,32 @@ function HomePage() {
         setErrorFeaturedMovies(err);
         setLoadingFeaturedMovies(false);
       });
+    //Get currently playing movies
+    axios({
+      method: "GET",
+      url: nowplayingMoviesURL(),
+      params: { language: "en-US", page: 2 },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.REACT_APP_ACCESS_TOKEN}`,
+      },
+    })
+      .then((res) => {
+        setCurrentlyPlayingMovies(res.data.results);
+      })
+      .then((data) => {
+        console.log(currentlyPlayingMovies);
+        setLoadingCurrentlyPlayingMovies(false);
+      })
+      .catch((err) => {
+        setErrorCurrentlyPlayingMovies(err);
+        setLoadingCurrentlyPlayingMovies(false);
+      });
     //Get upcoming Movies
     axios({
       method: "GET",
-      url: "https://api.themoviedb.org/3/movie/upcoming?language=en-US&page=1",
-      params: { language: "en-US", page: 2 },
+      url: upcomingMoviesURL(),
+      params: { language: "en-US", page: 1 },
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.REACT_APP_ACCESS_TOKEN}`,
@@ -74,7 +102,6 @@ function HomePage() {
         setUpcomingMovies(res.data.results);
       })
       .then((data) => {
-        console.log(upcomingMovies);
         setLoadingUpcomingMovies(false);
       })
       .catch((err) => {
@@ -110,27 +137,81 @@ function HomePage() {
             <IoIosArrowRoundForward size={"30px"} />
           </div>
         </div>
-        <div className="home-page__movies-section__section-header__movies">
-          {upcomingMovies.length > 0 && !!loadingUpcomingMovies ? (
-            upcomingMovies.map((movie) => (
-              <>
-                <div className="home-page__movies-section__section-header__movies__movie-card">
-                  <h1>{movie.title}</h1>
-                  <img
-                    src={"https://image.tmdb.org/t/p/w185" + movie.poster_path}
-                    alt=""
-                    className="poster"
-                  />
-                  <div className="info"></div>
+        <div className="home-page__movies-section__movies">
+          {loadingCurrentlyPlayingMovies ? (
+            <center>
+              <p>Loading ...</p>
+            </center>
+          ) : currentlyPlayingMovies?.length > 0 ? (
+            currentlyPlayingMovies?.slice(0, 4)?.map((movie) => (
+              <div
+                className="home-page__movies-section__movies__movie-card"
+                key={movie.id}
+              >
+                <img
+                  src={
+                    "https://image.tmdb.org/t/p/original" + movie.poster_path
+                  }
+                  alt=""
+                  className="poster"
+                />
+                <div className="info">
+                  <h3>{movie.title}</h3>
+                  <p>
+                    {movie.original_language.charAt(0).toUpperCase() +
+                      movie.original_language.slice(1)}
+                  </p>
                 </div>
-              </>
+              </div>
             ))
           ) : (
             <></>
           )}
         </div>
       </section>
-      <div id="home-page_upcoming"></div>
+      <section className="home-page__movies-section">
+        <div className="home-page__movies-section__section-header">
+          <h2 className="home-page__movies-section__section-header__title">
+            Upcoming Playing
+          </h2>
+          <div className="home-page__movies-section__section-header__action">
+            <span>See more</span>
+            <IoIosArrowRoundForward size={"30px"} />
+          </div>
+        </div>
+        <div className="home-page__movies-section__movies">
+          {loadingUpcomingMovies ? (
+            <center>
+              <p>Loading ...</p>
+            </center>
+          ) : upcomingMovies?.length > 0 ? (
+            upcomingMovies?.slice(0, 4)?.map((movie) => (
+              <div
+                className="home-page__movies-section__movies__movie-card"
+                key={movie.id}
+              >
+                <img
+                  src={
+                    "https://image.tmdb.org/t/p/original" + movie.poster_path
+                  }
+                  alt=""
+                  className="poster"
+                />
+                <div className="info">
+                  <h3>{movie.title}</h3>
+                  <p>
+                    {movie.original_language.charAt(0).toUpperCase() +
+                      movie.original_language.slice(1)}
+                  </p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <></>
+          )}
+        </div>
+      </section>
+      <Footer />
     </StyledHomePage>
   );
 }
@@ -294,6 +375,69 @@ const StyledHomePage = styled.div`
 
         &:hover {
           opacity: 0.9;
+        }
+      }
+    }
+
+    &__movies {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 50px;
+      width: 100%;
+      padding: 0px;
+
+      &__movie-card {
+        padding: 0px;
+        background: red;
+        position: relative;
+        overflow: hidden;
+        border-radius: 10px;
+
+        &::before {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          width: 100%;
+          height: 100%;
+          background: rgb(0, 0, 0);
+          background: linear-gradient(
+            0deg,
+            #000000b4 0%,
+            rgba(255, 255, 255, 0) 100%
+          );
+        }
+
+        img.poster {
+          display: block;
+          width: 100%;
+          object-fit: cover;
+        }
+
+        div.info {
+          position: absolute;
+          bottom: 0px;
+          padding: 20px;
+          text-align: left;
+          color: #fff;
+
+          h3 {
+            font-size: 20px;
+            font-weight: 500;
+            margin: 5px 0px 15px;
+            padding: 0px;
+          }
+
+          p {
+            font-size: 12px;
+            font-weight: 500;
+            margin: 0px;
+            padding: 5px 15px;
+            background: #ffffff2f;
+            display: inline-block;
+            border-radius: 5px;
+          }
         }
       }
     }
